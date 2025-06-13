@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tebak Gambar</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .hearts {
+      font-size: 20px;
+      color: red;
+      margin-bottom: 10px;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto 12px;
+      border-radius: 12px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-check {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .btn-next {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .feedback {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .feedback.correct {
+      color: green;
+    }
+
+    .feedback.wrong {
+      color: red;
+    }
+
+    .score, .high-score, .combo, .achievement {
+      color: #555;
+      font-size: 14px;
+    }
+
+    ul {
+      padding-left: 20px;
+      text-align: left;
+    }
+
+    #achievementPopup {
+      position: fixed;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: bold;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1000;
+      transition: opacity 0.5s ease;
+    }
+
+    #achievementPopup.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>[ Tebak Gambar ]</h1>
+    <div class="hearts" id="healthDisplay">❤️❤️❤️</div>
+    <img id="image" src="" alt="Tebak gambar" />
+    <input id="answer" type="text" placeholder="Jawaban kamu..." />
+    <button onclick="checkAnswer()" class="btn-check">Cek Jawaban</button>
+    <p id="feedback" class="feedback"></p>
+    <button onclick="nextImage()" class="btn-next">Gambar Selanjutnya</button>
+    <p class="score">Skor: <span id="score">0</span></p>
+    <p class="high-score">High Score: <span id="highScore">0</span></p>
+    <p class="combo">Combo: <span id="combo">0</span></p>
+
+    <div class="achievement">
+      <h4>🏆Koleksi/Achievements🏆:</h4>
+      <ul id="achievementsList"></ul>
+    </div>
+  </div>
+
+  <div id="achievementPopup"></div>
+
+  <script>
+    const data = [
+      { img: "https://i.supaimg.com/f4650c9f-e43a-409b-b4e8-e3960af6bd6f.jpg", answer: "kucing" },
+      { img: "https://i.supaimg.com/a1624d5f-c457-4df3-b5ac-49c21dc4fcfa.jpg", answer: "ayam" },
+      { img: "https://i.supaimg.com/d2624544-312b-47a0-a1a0-23fe5518c616.jpg", answer: "gajah" },
+      { img: "https://i.supaimg.com/5af69b0e-2597-4159-bcaf-a0c82c7b4599.jpg", answer: "domba" },
+      { img: "https://i.supaimg.com/45cf0aa8-907a-41ab-be19-6e93b5b23eb3.jpg", answer: 'panda' },
+      { img: "https://i.supaimg.com/f4396b00-42f1-4ed6-8d95-2817f00f115c.jpg", answer: 'harimau' },
+      { img: "https://i.supaimg.com/26fc9a79-b16d-41d6-a82f-88784ba15a93.jpg", answer: 'badak' },
+      { img: "https://i.supaimg.com/552236a2-6de3-4ac1-85cc-5564743f833f.jpg", answer: 'jerapah' },
+      { img: "https://i.supaimg.com/ebc19360-c2d1-4588-953b-01b8ad0b7494.jpg", answer: 'landak' },
+      { img: "https://i.supaimg.com/41f933d2-a32e-446e-afb6-b86650db9524.jpg", answer: 'macan' },
+      { img: "https://i.supaimg.com/5c8528f3-d27c-4bd6-95b7-98f0d63173e3.jpg", answer: 'bunglon' },
+      { img: "https://i.supaimg.com/28003d66-eeef-453d-aa0c-9fe288a77388.jpg", answer: 'burung merpati' },
+      { img: "https://i.supaimg.com/713c095d-57f4-4ecc-9f39-6cd3aabcdf48.jpg", answer: 'burung elang' },
+      { img: "https://i.supaimg.com/9690a6a2-565e-46d1-b712-05ea7cbddaae.jpg", answer: 'lemur' },
+      { img: "https://i.supaimg.com/b4bec42b-4c42-4118-8c03-f63679d08d90.jpg", answer: 'rubah' },
+      { img: "https://i.supaimg.com/becfd956-690b-4bd2-bdc6-33d600ff0d62.jpg", answer: 'tupai' },
+      { img: "https://i.supaimg.com/9ddfa3ec-2a3c-4195-90c9-383de9bbc9c5.jpg", answer: "zebra" },
+      { img: "https://i.supaimg.com/b3167e34-2446-4bd7-b887-e3518ed113ab.jpg", answer: "pinguin" },
+      { img: "https://i.supaimg.com/4ddac199-7ebd-4ea5-8911-6133fe628a7c.jpg", answer: "monyet" },
+      { img: "https://i.supaimg.com/0ebfd8b0-5222-4c99-9f8c-d8eae37fd1f4.jpg", answer: "sapi" },
+      { img: "https://i.supaimg.com/405ca417-b730-4624-9ab9-81ebc8db556f.jpg", answer: 'ubur ubur' },
+      { img: "https://i.supaimg.com/81dda4fc-4227-4601-aa97-e03a319530a6.jpg", answer: 'kuda' },
+      { img: "https://i.supaimg.com/9e9729fb-e39a-47cc-96fd-a0263c44e684.jpg", answer: 'bebek' },
+      { img: "https://i.supaimg.com/dd2971d9-0576-47e6-82dc-f075831e3655.jpg", answer: 'burung merak' },
+      { img: "https://i.supaimg.com/82da893f-c877-455d-8397-24cd42287a65.jpg", answer: 'anjing' },
+      { img: "https://i.supaimg.com/d607e1ff-7052-4322-bf5e-fad91d2c6f24.jpg", answer: 'burung pelikan' },
+        { img: "https://i.supaimg.com/480cff35-daf3-4db4-a798-3c4ebea85862.jpg", answer: 'alpaka' },
+      { img: "https://i.supaimg.com/fb2c9c0a-900a-4434-939b-e3b457476bdb.jpg", answer: 'kuda nil' },
+      { img: "https://i.supaimg.com/a60f8fc8-b7eb-4e2e-ad40-81e8beb3c01c.jpg", answer: 'hiu' },
+      { img: "https://i.supaimg.com/85eda131-4bde-4c66-b293-2c68d4e2c8c1.jpg", answer: 'singa' },
+        { img: "https://i.supaimg.com/5ba72fdf-19b9-4818-9062-6cd354f00f99.jpg", answer: 'burung hantu' },
+      { img: "https://i.supaimg.com/69eec13c-2cec-4b92-a434-1aaa04f9922e.jpg", answer: 'kelinci' }
+    ];
+
+    let current = 0;
+    let score = 0;
+    let highScore = parseInt(localStorage.getItem("highScore")) || 0;
+    let combo = 0;
+    let correctCount = 0;
+    let wrongStreak = 0;
+    let survivedCount = 0;
+    let health = 3;
+    let hasAnswered = false;
+
+    let achievements = JSON.parse(localStorage.getItem("achievements")) || [];
+    let answeredImages = new Set(JSON.parse(localStorage.getItem("answeredImages")) || []);
+
+    document.getElementById("highScore").textContent = highScore;
+
+    function updateHealthDisplay() {
+      document.getElementById("healthDisplay").textContent = "❤️".repeat(health);
+    }
+
+    function loadImage() {
+      if (answeredImages.has(data[current].answer.toLowerCase())) {
+        nextImage();
+        return;
+      }
+      document.getElementById("image").src = data[current].img;
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("feedback").className = "feedback";
+      hasAnswered = false;
+      updateHealthDisplay();
+    }
+
+    function getRandomIndex() {
+      const unanswered = data.filter(d => !answeredImages.has(d.answer.toLowerCase()));
+      if (unanswered.length === 0) {
+        alert("🎉 Semua gambar telah selesai!");
+        addAchievement("🏅 Menyelesaikan Semua Gambar!");
+        return -1;
+      }
+      const randomItem = unanswered[Math.floor(Math.random() * unanswered.length)];
+      return data.indexOf(randomItem);
+    }
+
+    function checkAnswer() {
+      if (hasAnswered) return;
+
+      const input = document.getElementById("answer").value.trim().toLowerCase();
+      const correct = data[current].answer.toLowerCase();
+      const feedback = document.getElementById("feedback");
+
+      if (answeredImages.has(correct)) {
+        feedback.textContent = "Gambar ini sudah dijawab sebelumnya!";
+        feedback.className = "feedback wrong";
+        return;
+      }
+
+      if (input === correct) {
+        combo++;
+        correctCount++;
+        wrongStreak = 0;
+        survivedCount++;
+
+        answeredImages.add(correct);
+        localStorage.setItem("answeredImages", JSON.stringify([...answeredImages]));
+
+        const baseScore = 20;
+        const comboBonus = combo;
+        const totalScore = baseScore + comboBonus;
+        score += totalScore;
+
+        feedback.textContent = `Benar! (+${baseScore} +${comboBonus})`;
+        feedback.className = "feedback correct";
+        updateScoreDisplay();
+        updateHighScore();
+        hasAnswered = true;
+        checkAchievements();
+      } else {
+        combo = 0;
+        health--;
+        wrongStreak++;
+        survivedCount = 0;
+        updateHealthDisplay();
+        feedback.textContent = `Salah! Nyawa berkurang 1`;
+        feedback.className = "feedback wrong";
+
+        if (health <= 0) {
+          alert("💀 Game Over!\nSkor kamu: " + score);
+          resetGame();
+        }
+      }
+
+      document.getElementById("combo").textContent = combo;
+    }
+
+    function updateScoreDisplay() {
+      document.getElementById("score").textContent = score;
+    }
+
+    function updateHighScore() {
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("highScore", highScore);
+        document.getElementById("highScore").textContent = highScore;
+      }
+    }
+
+    function nextImage() {
+      const next = getRandomIndex();
+      if (next !== -1) {
+        current = next;
+        loadImage();
+      }
+    }
+
+    function showAchievementPopup(text) {
+      const popup = document.getElementById("achievementPopup");
+      popup.textContent = `🏆 ${text}`;
+      popup.classList.add("show");
+      setTimeout(() => {
+        popup.classList.remove("show");
+      }, 3000);
+    }
+
+    function addAchievement(text) {
+      if (!achievements.includes(text)) {
+        achievements.push(text);
+        localStorage.setItem("achievements", JSON.stringify(achievements));
+        renderAchievements();
+        showAchievementPopup(text);
+      }
+    }
+
+    function checkAchievements() {
+      if (correctCount >= 5) addAchievement("🎯 Pemula Hebat (5 jawaban benar)");
+      if (combo >= 7) addAchievement("🔥 Kombinasi Mematikan (7 combo beruntun)");
+      if (combo >= 15) addAchievement("🔥🔥🔥 Kombinasi Mematikan (15 combo beruntun)");
+      if (survivedCount >= 5) addAchievement("💪 Tak Terkalahkan (5 gambar tanpa salah)");
+      if (wrongStreak >= 3 && correctCount > 0) addAchievement("💥 Kebangkitan Hebat");
+      if (score >= 150) addAchievement("🧠 Master Gambar (skor 150 ke atas)");
+      if (answeredImages.size === data.length) addAchievement("🏁 Selesaikan Semua Gambar!");
+    }
+
+    function renderAchievements() {
+      const list = document.getElementById("achievementsList");
+      list.innerHTML = "";
+      achievements.forEach(text => {
+        const li = document.createElement("li");
+        li.textContent = text;
+        list.appendChild(li);
+      });
+    }
+
+    function resetGame() {
+      score = 0;
+      combo = 0;
+      health = 3;
+      correctCount = 0;
+      wrongStreak = 0;
+      survivedCount = 0;
+      updateScoreDisplay();
+      document.getElementById("combo").textContent = combo;
+      loadImage();
+    }
+
+    current = getRandomIndex();
+    loadImage();
+    renderAchievements();
+  </script>
+</body>
+</html>
